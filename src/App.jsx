@@ -4,13 +4,10 @@ import Dashboard from './components/Dashboard';
 
 function App() {
   return (
-    <Router basename="/">
+    <Router>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        {/* Add a catch-all route to handle 404s properly */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
