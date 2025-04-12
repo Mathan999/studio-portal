@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import Admin from '../components/Admin';
 
-function Login({ onLoginSuccess }) {
-  const navigate = useNavigate();
+function Login({ onLoginSuccess, onLogout }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [credentials, setCredentials] = useState({
     username: '',
     password: ''
@@ -12,14 +13,16 @@ function Login({ onLoginSuccess }) {
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [lockTimer, setLockTimer] = useState(0);
-  
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [userToken, setUserToken] = useState(null);
+
   // Check if there was a redirect from a protected route
   useEffect(() => {
     if (location.state?.from) {
       setError(`Please login to access ${location.state.from}`);
     }
   }, [location]);
-  
+
   // Handle account lockout countdown
   useEffect(() => {
     let interval;
@@ -31,7 +34,7 @@ function Login({ onLoginSuccess }) {
       setIsLocked(false);
       setLoginAttempts(0);
     }
-    
+
     return () => clearInterval(interval);
   }, [isLocked, lockTimer]);
 
@@ -46,32 +49,51 @@ function Login({ onLoginSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Check if account is locked
     if (isLocked) {
       setError(`Account temporarily locked. Try again in ${lockTimer} seconds.`);
       return;
     }
-    
-    // In a real app, you'd make an API call here
-    // This is just a simulation for the demo
+
     try {
-      const isValid = credentials.username === 'studio32' && credentials.password === '12345';
-      
-      if (isValid) {
-        // Create a mock JWT token (in a real app, this would come from your server)
+      // Check admin credentials
+      if (credentials.username === 'admin' && credentials.password === 'stdio') {
+        // Create admin token
         const token = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({
           username: credentials.username,
+          role: 'admin',
           exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
         }))}.signature`;
-        
-        // Pass the token to parent component
+
+        // Pass token to parent (App.jsx)
         onLoginSuccess(token);
-        
-        // Navigate to the intended page or dashboard
+
+        // Store token for Admin component
+        setUserToken(token);
+
+        // Show Admin component directly
+        setShowAdmin(true);
+        return;
+      } 
+      // Check regular user credentials
+      else if (credentials.username === 'studio32' && credentials.password === '12345') {
+        // Create user token
+        const token = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({
+          username: credentials.username,
+          role: 'user',
+          exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
+        }))}.signature`;
+
+        // Pass token to parent
+        onLoginSuccess(token);
+
+        // Navigate to dashboard
         const destination = location.state?.from || '/dashboard';
-        navigate(destination);
-      } else {
+        navigate(destination, { replace: true });
+        return;
+      } 
+      else {
         // Failed login
         handleFailedLogin();
       }
@@ -80,11 +102,11 @@ function Login({ onLoginSuccess }) {
       setError('An unexpected error occurred. Please try again.');
     }
   };
-  
+
   const handleFailedLogin = () => {
     const newAttempts = loginAttempts + 1;
     setLoginAttempts(newAttempts);
-    
+
     if (newAttempts >= 5) {
       // Lock account for 30 seconds after 5 failed attempts
       setIsLocked(true);
@@ -95,6 +117,17 @@ function Login({ onLoginSuccess }) {
     }
   };
 
+  // Show Admin component directly if admin credentials are verified
+  if (showAdmin && userToken) {
+    return <Admin onLogout={() => {
+      setShowAdmin(false);
+      setUserToken(null);
+      setCredentials({ username: '', password: '' });
+      onLogout();
+    }} token={userToken} />;
+  }
+
+  // Otherwise show login form
   return (
     <div className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center overflow-auto">
       <div className="bg-gray-900 p-6 md:p-8 rounded-lg shadow-xl w-full max-w-md mx-4 md:mx-0 border border-blue-700 my-4">
@@ -102,13 +135,13 @@ function Login({ onLoginSuccess }) {
           <h1 className="text-2xl md:text-3xl font-bold text-blue-400">STUDIO 32</h1>
           <p className="text-gray-400 mt-2">Please sign in to your account</p>
         </div>
-                
+
         {error && (
           <div className="mb-4 p-3 bg-red-900 bg-opacity-50 border border-red-500 rounded text-red-300 text-sm">
             {error}
           </div>
         )}
-                
+
         <form onSubmit={handleSubmit}>
           <div className="mb-5 md:mb-6">
             <label htmlFor="username" className="block text-blue-300 text-sm font-medium mb-2">
@@ -126,7 +159,7 @@ function Login({ onLoginSuccess }) {
               required
             />
           </div>
-                    
+
           <div className="mb-5 md:mb-6">
             <label htmlFor="password" className="block text-blue-300 text-sm font-medium mb-2">
               Password
@@ -143,7 +176,7 @@ function Login({ onLoginSuccess }) {
               required
             />
           </div>
-                    
+
           <button
             type="submit"
             disabled={isLocked}

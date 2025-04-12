@@ -8,49 +8,54 @@ function App() {
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-    
-  // Check for any stored authentication on component mount
+  const [token, setToken] = useState(null);
+
+  // Check for stored authentication on component mount
   useEffect(() => {
-    // Check if we have a token in sessionStorage
-    const token = sessionStorage.getItem('authToken');
-    if (token) {
-      // Validate the token here (in a real app, you'd verify with your backend)
+    const storedToken = sessionStorage.getItem('authToken');
+    if (storedToken) {
       try {
-        const tokenData = JSON.parse(atob(token.split('.')[1]));
-        if (tokenData && tokenData.exp > Date.now() / 1000) {
+        const tokenParts = storedToken.split('.');
+        if (tokenParts.length !== 3) throw new Error('Invalid token format');
+
+        const payload = JSON.parse(atob(tokenParts[1]));
+        if (payload.exp * 1000 > Date.now()) {
           setIsAuthenticated(true);
+          setToken(storedToken);
         } else {
           // Token expired
           sessionStorage.removeItem('authToken');
         }
-      // eslint-disable-next-line no-unused-vars
-      } catch (e) {
-        // Invalid token format
+      } catch (error) {
+        console.error('Token validation failed:', error);
         sessionStorage.removeItem('authToken');
       }
     }
     setIsLoading(false);
   }, []);
-  
+
   // Login success handler
-  const handleLoginSuccess = (token) => {
-    // Store auth token in sessionStorage (in a real app, this would be a JWT from your backend)
-    const secureToken = token || `secure.${btoa(JSON.stringify({
-      userId: 'user123',
-      exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour expiration
-    }))}.signature`;
-    
-    sessionStorage.setItem('authToken', secureToken);
-    setIsAuthenticated(true);
+  const handleLoginSuccess = (newToken) => {
+    try {
+      const tokenParts = newToken.split('.');
+      if (tokenParts.length !== 3) throw new Error('Invalid token format');
+
+      sessionStorage.setItem('authToken', newToken);
+      setToken(newToken);
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error('Login token validation failed:', error);
+      sessionStorage.removeItem('authToken');
+    }
   };
-  
+
   // Logout handler
   const handleLogout = () => {
-    // Remove the token from sessionStorage
     sessionStorage.removeItem('authToken');
+    setToken(null);
     setIsAuthenticated(false);
   };
-  
+
   if (isLoading) {
     return <div className="loading">Loading...</div>;
   }
@@ -58,29 +63,26 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
-                
-        {/* Login is always accessible, but redirects if already logged in */}
-        <Route 
-          path="/login" 
-          element={
-            isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
-              <Login onLoginSuccess={handleLoginSuccess} />
-          } 
-        />
-                
-        {/* Dashboard route is protected */}
+        {/* Redirect root to login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+
+        {/* Login route: handles both admin and user access */}
         <Route
-          path="/dashboard/*"
+          path="/login"
+          element={<Login onLoginSuccess={handleLoginSuccess} onLogout={handleLogout} />}
+        />
+
+        {/* Dashboard route: protected for users */}
+        <Route
+          path="/dashboard"
           element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <Dashboard onLogout={handleLogout} />
+            <ProtectedRoute isAuthenticated={isAuthenticated} token={token} requiredRole="user">
+              <Dashboard onLogout={handleLogout} token={token} />
             </ProtectedRoute>
           }
         />
 
-        {/* Catch all unauthorized attempts */}
+        {/* Catch-all for invalid routes */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>

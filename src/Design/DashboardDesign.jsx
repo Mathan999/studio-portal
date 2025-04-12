@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import Form from '../components/Form'; // Make sure the path is correct based on your project structure
+import React, { useState, useEffect } from 'react';
+import Form from '../components/Form'; // Ensure path is correct
+import { fetchProjects } from '../services/firebaseService'; // Import Firebase service
 
 function DashboardDesign({
   projectStats,
@@ -9,34 +10,34 @@ function DashboardDesign({
   toggleMobileMenu,
   mobileMenuOpen
 }) {
-  // State to control form visibility
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [editingProject] = useState(null);
+  const [projects, setProjects] = useState([]); // State for projects
 
-  // Handle form open and close
+  // Fetch projects from Firebase
+  useEffect(() => {
+    fetchProjects((projectsData) => {
+      setProjects(projectsData);
+    });
+  }, []);
+
   const handleOpenForm = () => {
     setShowProjectForm(true);
   };
 
   const handleFormClose = (formData) => {
     setShowProjectForm(false);
-    // If formData exists, it means the form was submitted
     if (formData) {
       console.log('Form submitted with data:', formData);
-      // Here you would typically handle the form data, e.g., update state or make an API call
     }
   };
 
   return (
     <div className="fixed inset-0 bg-gray-900">
-      {/* Main Layout Container */}
       <div className="flex h-screen">
-        {/* Left Sidebar Navigation - Fixed with flexible background */}
         <aside className={`fixed inset-y-0 left-0 z-30 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out w-64 bg-gray-800 border-r border-blue-700 flex flex-col`}>
-          {/* Logo */}
           <div className="p-4 border-b border-blue-700 flex justify-between items-center">
             <h1 className="text-xl md:text-2xl font-bold text-blue-400">STUDIO 32</h1>
-            {/* Close button for mobile */}
             <button 
               className="lg:hidden text-gray-300 hover:text-white"
               onClick={toggleMobileMenu}
@@ -47,7 +48,6 @@ function DashboardDesign({
             </button>
           </div>
           
-          {/* Navigation Links - Now with fully flexible background */}
           <nav className="flex-1 overflow-y-auto py-2 bg-gray-800">
             <div className="flex flex-col h-full">
               <button 
@@ -74,7 +74,6 @@ function DashboardDesign({
               >
                 Settings
               </button>
-              {/* Additional navigation items */}
               <button 
                 className={`w-full text-left px-6 py-3 font-medium text-gray-300 hover:bg-gray-700 hover:text-gray-100`}
               >
@@ -95,12 +94,10 @@ function DashboardDesign({
               >
                 Messages
               </button>
-              {/* Spacer to push content to the top if needed */}
               <div className="flex-grow"></div>
             </div>
           </nav>
           
-          {/* User Info at bottom */}
           <div className="p-4 border-t border-gray-700">
             <div className="text-gray-300 mb-2">Welcome, studio32</div>
             <button 
@@ -112,12 +109,9 @@ function DashboardDesign({
           </div>
         </aside>
         
-        {/* Main Content Area - With fixed background */}
         <div className="flex-1 lg:ml-64 flex flex-col w-full">
-          {/* Header - Fixed at top */}
           <header className="fixed top-0 right-0 left-0 lg:left-64 z-20 bg-gray-800 border-b border-blue-700 shadow-md">
             <div className="px-4 py-4 flex justify-between items-center">
-              {/* Mobile Menu Button */}
               <button 
                 className="lg:hidden text-gray-300 hover:text-white focus:outline-none"
                 onClick={toggleMobileMenu}
@@ -128,7 +122,6 @@ function DashboardDesign({
                 </svg>
               </button>
               
-              {/* Page Title */}
               <h2 className="text-lg sm:text-xl font-medium text-gray-300">
                 {activeTab === 'overview' ? 'Dashboard' : 
                  activeTab === 'projects' ? 'Projects' : 
@@ -136,22 +129,18 @@ function DashboardDesign({
                  activeTab === 'settings' ? 'Settings' : 'Dashboard'}
               </h2>
               
-              {/* Mobile View: User Info */}
               <div className="lg:hidden">
                 <div className="text-gray-300 text-sm">studio32</div>
               </div>
             </div>
           </header>
           
-          {/* Fixed Background Layer - This will not scroll */}
           <div className="fixed top-16 right-0 bottom-0 left-0 lg:left-64 bg-gray-900 z-0"></div>
           
-          {/* Scrollable Content Container - This will scroll over the fixed background */}
           <div className="pt-16 relative z-10 overflow-y-auto h-screen">
             {activeTab === 'overview' && (
               <div className="p-4 sm:p-6">
                 <div className="mx-auto max-w-6xl">
-                  {/* Stats Grid - Responsive */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mb-6">
                     <div className="bg-gray-800 p-4 sm:p-6 rounded-lg border border-gray-700 shadow-lg">
                       <h3 className="text-lg sm:text-xl font-semibold mb-2 text-blue-300">Active Projects</h3>
@@ -167,7 +156,6 @@ function DashboardDesign({
                     </div>
                   </div>
                   
-                  {/* Additional content section */}
                   <div className="bg-gray-800 p-4 sm:p-6 rounded-lg border border-gray-700 shadow-lg">
                     <h3 className="text-lg sm:text-xl font-semibold mb-3 text-blue-300">Overview Dashboard</h3>
                     <div className="text-gray-300">
@@ -176,7 +164,6 @@ function DashboardDesign({
                     </div>
                   </div>
                   
-                  {/* Extra content to demonstrate scrolling */}
                   <div className="mt-6 bg-gray-800 p-4 sm:p-6 rounded-lg border border-gray-700 shadow-lg">
                     <h3 className="text-lg sm:text-xl font-semibold mb-3 text-blue-300">Recent Activity</h3>
                     <div className="text-gray-300">
@@ -211,25 +198,30 @@ function DashboardDesign({
                   <div className="bg-gray-800 p-4 sm:p-6 rounded-lg border border-gray-700 shadow-lg">
                     <p className="text-gray-300 mb-4">Projects list will appear here.</p>
                     
-                    {/* Empty state placeholder */}
-                    <div className="bg-gray-700 bg-opacity-50 border border-dashed border-gray-600 rounded-lg p-8 flex items-center justify-center min-h-64">
-                      <div className="text-center text-gray-400">
-                        <p>No projects added yet. Click "Add New Project" to get started.</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Extra content to demonstrate scrolling */}
-                  <div className="mt-6 bg-gray-800 p-4 sm:p-6 rounded-lg border border-gray-700 shadow-lg">
-                    <h3 className="text-lg sm:text-xl font-semibold mb-3 text-blue-300">Project Templates</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[1, 2, 3, 4].map((item) => (
-                        <div key={item} className="p-3 bg-gray-700 rounded-lg">
-                          <h4 className="text-gray-200 font-medium">Template {item}</h4>
-                          <p className="text-sm text-gray-400 mt-1">A template for project type {item}</p>
+                    {projects.length === 0 ? (
+                      <div className="bg-gray-700 bg-opacity-50 border border-dashed border-gray-600 rounded-lg p-8 flex items-center justify-center min-h-64">
+                        <div className="text-center text-gray-400">
+                          <p>No projects added yet. Click "Add New Project" to get started.</p>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {projects.map((project) => (
+                          <div key={project.id} className="p-4 bg-gray-700 rounded-lg flex justify-between items-center">
+                            <div>
+                              <h4 className="text-gray-200 font-medium">{project.title}</h4>
+                              <p className="text-sm text-gray-400">SKU: {project.sku}</p>
+                              <p className="text-sm text-gray-400">Client: {project.client}</p>
+                              <p className="text-sm text-gray-400">Status: {project.status}</p>
+                              <p className="text-sm text-gray-400">JobType: {project.jobType}</p>
+                            </div>
+                            <div className="text-gray-400 text-sm">
+                              {project.category?.join(', ')}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -248,7 +240,6 @@ function DashboardDesign({
                     </div>
                   </div>
                   
-                  {/* Extra content to demonstrate scrolling */}
                   <div className="mt-6 bg-gray-800 p-4 sm:p-6 rounded-lg border border-gray-700 shadow-lg">
                     <h3 className="text-lg sm:text-xl font-semibold mb-3 text-blue-300">Recent Clients</h3>
                     <div className="space-y-4">
@@ -285,13 +276,12 @@ function DashboardDesign({
                         <p className="text-gray-300">Configure your notification preferences.</p>
                       </div>
                       <div className="p-4 border border-gray-700 rounded-lg bg-gray-700 bg-opacity-50 md:col-span-2">
-                        <h4 className="text-base font-medium text-blue-200 mb-2">Display Settings</h4>
+                        <h4 className="text-base font-medium text-blue-200 mb2">Display Settings</h4>
                         <p className="text-gray-300">Customize the appearance of your dashboard.</p>
                       </div>
                     </div>
                   </div>
                   
-                  {/* Extra content to demonstrate scrolling */}
                   <div className="mt-6 bg-gray-800 p-4 sm:p-6 rounded-lg border border-gray-700 shadow-lg">
                     <h3 className="text-lg sm:text-xl font-semibold mb-3 text-blue-300">Additional Settings</h3>
                     <div className="space-y-4">
@@ -307,12 +297,10 @@ function DashboardDesign({
               </div>
             )}
             
-            {/* Add sufficient bottom padding to ensure scrollable content */}
             <div className="pb-16"></div>
           </div>
         </div>
         
-        {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
@@ -321,7 +309,6 @@ function DashboardDesign({
         )}
       </div>
       
-      {/* Form Component - Shown when showProjectForm is true */}
       {showProjectForm && (
         <Form 
           onClose={handleFormClose}

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import FormDesign from '../Design/FormDesign';
+import { saveProject } from '../services/firebaseService'; // Import Firebase service
 
 function Form({ onClose, projectData }) {
-  // State for form fields
   const [formData, setFormData] = useState({
-    // FormDesign fields
     sku: '',
     jobType: 'All',
     assignedUser: 'All',
@@ -20,10 +19,10 @@ function Form({ onClose, projectData }) {
     optionId: '',
     category: [],
     priority: 'All',
-    tag: 'All'
+    tag: 'All',
+    dueDate: ''
   });
 
-  // Categories for FormDesign
   const [categories] = useState([
     'Gaming Chairs',
     'Gaming Beds',
@@ -38,21 +37,31 @@ function Form({ onClose, projectData }) {
     'Flowers'
   ]);
 
-  // If projectData is provided, use it to populate the form (for editing)
   useEffect(() => {
     if (projectData) {
       setFormData(prevData => ({
         ...prevData,
-        // Map any project data to the form fields
-        // You may need to adjust this based on your data structure
         sku: projectData.sku || '',
         title: projectData.title || '',
-        // Add mappings for other fields as needed
+        client: projectData.client || 'All',
+        status: projectData.status || 'All',
+        category: projectData.category || [],
+        dueDate: projectData.dueDate || '',
+        jobType: projectData.jobType || 'All',
+        assignedUser: projectData.assignedUser || 'All',
+        complexity: projectData.complexity || 'All',
+        hold: projectData.hold || 'All',
+        artistCo: projectData.artistCo || 'All',
+        workflowType: projectData.workflowType || 'All',
+        selfserveJobs: projectData.selfserveJobs || false,
+        qaErrors: projectData.qaErrors || 'All',
+        optionId: projectData.optionId || '',
+        priority: projectData.priority || 'All',
+        tag: projectData.tag || 'All'
       }));
     }
   }, [projectData]);
 
-  // Handle form input changes
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prevData => ({
@@ -61,7 +70,6 @@ function Form({ onClose, projectData }) {
     }));
   };
 
-  // Handle category changes
   const handleCategoryChange = (category) => {
     setFormData(prevData => {
       const updatedCategories = [...prevData.category];
@@ -79,13 +87,10 @@ function Form({ onClose, projectData }) {
     });
   };
 
-  // Handle image upload
   const handleImageUpload = (e) => {
-    // Handle image upload logic here
     console.log("Image uploaded:", e.target.files[0]);
   };
 
-  // Reset filters
   const resetFilters = () => {
     setFormData({
       sku: '',
@@ -103,21 +108,26 @@ function Form({ onClose, projectData }) {
       optionId: '',
       category: [],
       priority: 'All',
-      tag: 'All'
+      tag: 'All',
+      dueDate: ''
     });
   };
 
-  // Export CSV
   const exportCsv = () => {
     console.log("Exporting CSV...");
-    // Implement CSV export logic here
   };
 
-  // Handle form submission
+  const handleSave = async (data) => {
+    try {
+      await saveProject(data);
+      onClose(data); // Pass data back to DashboardDesign
+    } catch (error) {
+      console.error('Failed to save project:', error);
+    }
+  };
 
-  // Handle form cancel
   const handleCancel = () => {
-    onClose(); // Close without submitting
+    onClose();
   };
 
   return (
@@ -138,7 +148,7 @@ function Form({ onClose, projectData }) {
         </div>
         
         <div className="max-h-[70vh] overflow-y-auto">
-          <FormDesign 
+          <FormDesign
             formData={formData}
             handleChange={handleChange}
             handleCategoryChange={handleCategoryChange}
@@ -146,6 +156,8 @@ function Form({ onClose, projectData }) {
             categories={categories}
             resetFilters={resetFilters}
             exportCsv={exportCsv}
+            onSave={handleSave}
+            onCancel={handleCancel}
           />
         </div>
       </div>
