@@ -1,17 +1,48 @@
 import React, { useState, useEffect } from 'react';
+import { getFormOptions } from '../services/firebaseService';
 
 function FormDesign({
   formData,
   handleChange,
   handleCategoryChange,
-  categories,
   onSave,
-  onCancel
+  onCancel,
 }) {
   const [errors, setErrors] = useState({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [formOptions, setFormOptions] = useState({
+    jobType: [],
+    status: [],
+    hold: [],
+    complexities: [],
+    assignedUser: [],
+    clients: [],
+    artistCo: [],
+    workflowType: [],
+    qaErrors: [],
+    category: [],
+    tag: [],
+    priority: []
+  });
 
   const requiredFields = ['sku', 'title', 'client', 'status'];
+
+  // Fetch options from Firebase
+  useEffect(() => {
+    const fetchOptions = () => {
+      getFormOptions((data) => {
+        console.log("Fetched form options:", data);
+        setFormOptions(data || {});
+      });
+    };
+    
+    fetchOptions();
+    
+    // Set up a refresh interval to keep the options updated
+    const intervalId = setInterval(fetchOptions, 5000);
+    
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     if (isSubmitted) {
@@ -65,25 +96,39 @@ function FormDesign({
     }
   };
 
-  const renderField = (label, name, value, options = ['Super']) => (
+  const renderField = (label, name, value, options) => (
     <div className="mb-4">
       <label className={`block text-sm font-medium mb-2 ${requiredFields.includes(name) ? 'text-blue-100 after:content-["*"] after:ml-0.5 after:text-red-400' : 'text-blue-100'}`}>
         {label}:
       </label>
       <select
         name={name}
-        value={value || 'All'}
+        value={value || ''}
         onChange={handleChange}
         className={`block w-full bg-black bg-opacity-50 border ${errors[name] ? 'border-red-400' : 'border-blue-500'} text-blue-100 py-2 px-3 rounded leading-tight focus:outline-none focus:bg-black focus:border-blue-400`}
       >
-        <option value="All">Select {label}</option>
-        {options.map(option => (
-          <option key={option} value={option}>{option}</option>
+        <option value="">Select {label}</option>
+        {Array.isArray(options) && options.map((option, index) => (
+          <option key={`${option}-${index}`} value={option}>{option}</option>
         ))}
       </select>
       {errors[name] && (
         <p className="text-red-400 text-xs mt-1 error-message">{errors[name]}</p>
       )}
+      
+      {/* Display current options below the field
+      {Array.isArray(options) && options.length > 0 && (
+        <div className="mt-2 p-2 bg-gray-700 rounded max-h-24 overflow-y-auto">
+          <p className="text-xs text-gray-400 mb-1">Current options:</p>
+          <div className="flex flex-wrap gap-1">
+            {options.map((item, index) => (
+              <span key={`option-${index}`} className="bg-blue-900 text-blue-200 px-2 py-1 rounded text-xs">
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+      )} */}
     </div>
   );
 
@@ -129,20 +174,20 @@ function FormDesign({
                 <h2 className="text-lg text-blue-300 font-semibold mb-4 pb-2 border-b border-blue-900">Basic Information</h2>
                 
                 {renderTextInput('SKU', 'sku', formData.sku, 'Enter SKU')}
-                {renderField('Job Type', 'jobType', formData.jobType)}
-                {renderField('Assigned User', 'assignedUser', formData.assignedUser)}
-                {renderField('Status', 'status', formData.status)}
-                {renderField('Complexities', 'complexity', formData.complexity)}
-                {renderField('Hold', 'hold', formData.hold)}
+                {renderField('Job Type', 'jobType', formData.jobType, formOptions.jobType)}
+                {renderField('Assigned User', 'assignedUser', formData.assignedUser, formOptions.assignedUser)}
+                {renderField('Status', 'status', formData.status, formOptions.status)}
+                {renderField('Complexities', 'complexity', formData.complexity, formOptions.complexities)}
+                {renderField('Hold', 'hold', formData.hold, formOptions.hold)}
               </div>
 
               <div className="bg-black bg-opacity-40 p-4 rounded-md border border-blue-900">
                 <h2 className="text-lg text-blue-300 font-semibold mb-4 pb-2 border-b border-blue-900">Project Details</h2>
                 
                 {renderTextInput('Title', 'title', formData.title, 'Enter Title')}
-                {renderField('Clients', 'client', formData.client)}
-                {renderField('Artist Co', 'artistCo', formData.artistCo)}
-                {renderField('Workflow Type', 'workflowType', formData.workflowType)}
+                {renderField('Clients', 'client', formData.client, formOptions.clients)}
+                {renderField('Artist Co', 'artistCo', formData.artistCo, formOptions.artistCo)}
+                {renderField('Workflow Type', 'workflowType', formData.workflowType, formOptions.workflowType)}
                 
                 <div className="mb-4">
                   <label className="block text-blue-100 text-sm font-medium mb-2">Selfserve Jobs:</label>
@@ -158,7 +203,7 @@ function FormDesign({
                   </div>
                 </div>
 
-                {renderField('QA Errors', 'qaErrors', formData.qaErrors)}
+                {renderField('QA Errors', 'qaErrors', formData.qaErrors, formOptions.qaErrors)}
               </div>
 
               <div className="bg-black bg-opacity-40 p-4 rounded-md border border-blue-900">
@@ -169,8 +214,8 @@ function FormDesign({
                 <div className="mb-4">
                   <label className="block text-blue-100 text-sm font-medium mb-2">Category:</label>
                   <div className={`bg-black bg-opacity-50 border ${errors.category ? 'border-red-400' : 'border-blue-500'} rounded p-2 max-h-32 overflow-y-auto`}>
-                    {categories.map(category => (
-                      <div key={category} className="flex items-center mb-1">
+                    {Array.isArray(formOptions.category) && formOptions.category.map((category, index) => (
+                      <div key={`cat-${index}`} className="flex items-center mb-1">
                         <input
                           type="checkbox"
                           id={`category-${category}`}
@@ -205,7 +250,7 @@ function FormDesign({
                   )}
                 </div>
 
-                {renderField('Priority', 'priority', formData.priority)}
+                {renderField('Priority', 'priority', formData.priority, formOptions.priority)}
               </div>
             </div>
             

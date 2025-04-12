@@ -1,6 +1,11 @@
-// firebaseService.js
+// firebaseService.jsx
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, push, onValue, set } from 'firebase/database';
+import { 
+  getDatabase, 
+  ref, 
+  push, 
+  onValue, 
+  set} from 'firebase/database';
 
 // Your Firebase configuration object
 const firebaseConfig = {
@@ -17,6 +22,35 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
+
+// Create default form options if they don't exist
+const initializeDefaultOptions = async () => {
+  const defaultOptions = {
+    jobType: [],
+    status: [],
+    hold: [],
+    complexities: [],
+    assignedUser: [],
+    clients: [],
+    artistCo: [],
+    workflowType: [],
+    qaErrors: [],
+    category: [],
+    tag: [],
+    priority: []
+  };
+  
+  const optionsRef = ref(database, 'formOptions');
+  onValue(optionsRef, (snapshot) => {
+    if (!snapshot.exists()) {
+      // If formOptions doesn't exist, create it with default values
+      set(optionsRef, defaultOptions);
+    }
+  }, { onlyOnce: true });
+};
+
+// Initialize default options
+initializeDefaultOptions();
 
 // Function to save project data
 export const saveProject = async (projectData) => {
@@ -43,4 +77,65 @@ export const fetchProjects = (callback) => {
   }, (error) => {
     console.error('Error fetching projects:', error);
   });
+};
+
+// Function to get form options
+export const getFormOptions = (callback) => {
+  const optionsRef = ref(database, 'formOptions');
+  onValue(optionsRef, (snapshot) => {
+    const data = snapshot.val() || {
+      jobType: [],
+      status: [],
+      hold: [],
+      complexities: [],
+      assignedUser: [],
+      clients: [],
+      artistCo: [],
+      workflowType: [],
+      qaErrors: [],
+      category: [],
+      tag: [],
+      priority: []
+    };
+    console.log("Firebase data fetched:", data);
+    callback(data);
+  }, (error) => {
+    console.error('Error fetching form options:', error);
+  });
+};
+
+// Function to add option to a specific category
+export const addFormOption = async (category, value) => {
+  try {
+    if (!category || !value || value.trim() === '') {
+      throw new Error('Category and value are required');
+    }
+
+    const optionsRef = ref(database, `formOptions/${category}`);
+    
+    // Get current values
+    return new Promise((resolve, reject) => {
+      onValue(optionsRef, async (snapshot) => {
+        try {
+          const currentValues = snapshot.val() || [];
+          
+          // Don't add duplicates
+          if (!currentValues.includes(value)) {
+            const updatedValues = [...currentValues, value];
+            await set(optionsRef, updatedValues);
+            console.log(`Successfully added ${value} to ${category}`);
+          } else {
+            console.log(`${value} already exists in ${category}`);
+          }
+          resolve();
+        } catch (error) {
+          console.error(`Error processing ${category} update:`, error);
+          reject(error);
+        }
+      }, { onlyOnce: true });
+    });
+  } catch (error) {
+    console.error(`Error adding ${value} to ${category}:`, error);
+    throw error;
+  }
 };
