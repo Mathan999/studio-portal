@@ -1,44 +1,119 @@
 import React, { useState, useEffect } from 'react';
+import FormDesign from '../Design/FormDesign';
 
 function Form({ onClose, projectData }) {
   // State for form fields
   const [formData, setFormData] = useState({
-    projectName: '',
-    clientName: '',
-    description: '',
-    startDate: '',
-    dueDate: '',
-    status: 'active',
+    // FormDesign fields
+    sku: '',
+    jobType: 'All',
+    assignedUser: 'All',
+    status: 'All',
+    complexity: 'All',
+    hold: 'All',
+    title: '',
+    client: 'All',
+    artistCo: 'All',
+    workflowType: 'All',
+    selfserveJobs: false,
+    qaErrors: 'All',
+    optionId: '',
+    category: [],
+    priority: 'All',
+    tag: 'All'
   });
+
+  // Categories for FormDesign
+  const [categories] = useState([
+    'Gaming Chairs',
+    'Gaming Beds',
+    'Futons & Sleepers',
+    'Furniture Sets',
+    'Furniture',
+    'Fragrance Oils',
+    'Fragrance',
+    'Food Prep & Processors',
+    'Food',
+    'Flush Mount Lighting',
+    'Flowers'
+  ]);
 
   // If projectData is provided, use it to populate the form (for editing)
   useEffect(() => {
     if (projectData) {
-      setFormData({
-        projectName: projectData.projectName || '',
-        clientName: projectData.clientName || '',
-        description: projectData.description || '',
-        startDate: projectData.startDate || '',
-        dueDate: projectData.dueDate || '',
-        status: projectData.status || 'active',
-      });
+      setFormData(prevData => ({
+        ...prevData,
+        // Map any project data to the form fields
+        // You may need to adjust this based on your data structure
+        sku: projectData.sku || '',
+        title: projectData.title || '',
+        // Add mappings for other fields as needed
+      }));
     }
   }, [projectData]);
 
   // Handle form input changes
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prevData => ({
       ...prevData,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
-  // Handle form submission
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onClose(formData); // Pass form data back to parent
+  // Handle category changes
+  const handleCategoryChange = (category) => {
+    setFormData(prevData => {
+      const updatedCategories = [...prevData.category];
+      if (updatedCategories.includes(category)) {
+        return {
+          ...prevData,
+          category: updatedCategories.filter(cat => cat !== category)
+        };
+      } else {
+        return {
+          ...prevData,
+          category: [...updatedCategories, category]
+        };
+      }
+    });
   };
+
+  // Handle image upload
+  const handleImageUpload = (e) => {
+    // Handle image upload logic here
+    console.log("Image uploaded:", e.target.files[0]);
+  };
+
+  // Reset filters
+  const resetFilters = () => {
+    setFormData({
+      sku: '',
+      jobType: 'All',
+      assignedUser: 'All',
+      status: 'All',
+      complexity: 'All',
+      hold: 'All',
+      title: '',
+      client: 'All',
+      artistCo: 'All',
+      workflowType: 'All',
+      selfserveJobs: false,
+      qaErrors: 'All',
+      optionId: '',
+      category: [],
+      priority: 'All',
+      tag: 'All'
+    });
+  };
+
+  // Export CSV
+  const exportCsv = () => {
+    console.log("Exporting CSV...");
+    // Implement CSV export logic here
+  };
+
+  // Handle form submission
 
   // Handle form cancel
   const handleCancel = () => {
@@ -47,7 +122,7 @@ function Form({ onClose, projectData }) {
 
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl mx-4 border border-blue-700 shadow-xl">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-5xl mx-4 border border-blue-700 shadow-xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-blue-400">
             {projectData ? 'Edit Project' : 'Add New Project'}
@@ -61,117 +136,18 @@ function Form({ onClose, projectData }) {
             </svg>
           </button>
         </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label htmlFor="projectName" className="block text-sm font-medium text-gray-300 mb-1">
-                Project Name
-              </label>
-              <input
-                type="text"
-                id="projectName"
-                name="projectName"
-                value={formData.projectName}
-                onChange={handleChange}
-                required
-                className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="clientName" className="block text-sm font-medium text-gray-300 mb-1">
-                Client Name
-              </label>
-              <input
-                type="text"
-                id="clientName"
-                name="clientName"
-                value={formData.clientName}
-                onChange={handleChange}
-                required
-                className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">
-              Description
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows="4"
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label htmlFor="startDate" className="block text-sm font-medium text-gray-300 mb-1">
-                Start Date
-              </label>
-              <input
-                type="date"
-                id="startDate"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleChange}
-                className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-300 mb-1">
-                Due Date
-              </label>
-              <input
-                type="date"
-                id="dueDate"
-                name="dueDate"
-                value={formData.dueDate}
-                onChange={handleChange}
-                className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">
-              Status
-            </label>
-            <select
-              id="status"
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-blue-500"
-            >
-              <option value="active">Active</option>
-              <option value="pending">Pending Review</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-
-          <div className="flex justify-end space-x-4">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              {projectData ? 'Update Project' : 'Create Project'}
-            </button>
-          </div>
-        </form>
+        
+        <div className="max-h-[70vh] overflow-y-auto">
+          <FormDesign 
+            formData={formData}
+            handleChange={handleChange}
+            handleCategoryChange={handleCategoryChange}
+            handleImageUpload={handleImageUpload}
+            categories={categories}
+            resetFilters={resetFilters}
+            exportCsv={exportCsv}
+          />
+        </div>
       </div>
     </div>
   );
