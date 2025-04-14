@@ -1,6 +1,6 @@
 import React from 'react';
 
-function InstallButton({ onClick }) {
+function InstallPWA({ onClick }) {
   return (
     <div className="install-prompt">
       <div className="install-container">
@@ -48,4 +48,4 @@ function InstallButton({ onClick }) {
   );
 }
 
-export default InstallButton;
+export default InstallPWA;
