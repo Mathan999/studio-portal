@@ -5,7 +5,8 @@ import {
   ref, 
   push, 
   onValue, 
-  set} from 'firebase/database';
+  set,
+  remove} from 'firebase/database';
 
 // Your Firebase configuration object
 const firebaseConfig = {
@@ -61,6 +62,30 @@ export const saveProject = async (projectData) => {
     return newProjectRef.key;
   } catch (error) {
     console.error('Error saving project:', error);
+    throw error;
+  }
+};
+
+// Function to update project data
+export const updateProject = async (projectId, projectData) => {
+  try {
+    const projectRef = ref(database, `projects/${projectId}`);
+    await set(projectRef, projectData);
+    return true;
+  } catch (error) {
+    console.error('Error updating project:', error);
+    throw error;
+  }
+};
+
+// Function to delete project
+export const deleteProject = async (projectId) => {
+  try {
+    const projectRef = ref(database, `projects/${projectId}`);
+    await remove(projectRef);
+    return true;
+  } catch (error) {
+    console.error('Error deleting project:', error);
     throw error;
   }
 };

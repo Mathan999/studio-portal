@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Form from '../components/Form'; // Ensure path is correct
-import { fetchProjects } from '../services/firebaseService'; // Import Firebase service
+import { fetchProjects, deleteProject } from '../services/firebaseService'; // Import Firebase service
 
 function DashboardDesign({
   projectStats,
@@ -11,7 +11,7 @@ function DashboardDesign({
   mobileMenuOpen
 }) {
   const [showProjectForm, setShowProjectForm] = useState(false);
-  const [editingProject] = useState(null);
+  const [editingProject, setEditingProject] = useState(null);
   const [projects, setProjects] = useState([]); // State for projects
 
   // Fetch projects from Firebase
@@ -22,13 +22,33 @@ function DashboardDesign({
   }, []);
 
   const handleOpenForm = () => {
+    setEditingProject(null);
     setShowProjectForm(true);
+  };
+
+  const handleEditProject = (project) => {
+    setEditingProject(project);
+    setShowProjectForm(true);
+  };
+
+  const handleDeleteProject = async (projectId) => {
+    try {
+      await deleteProject(projectId);
+      // Update local state after successful deletion
+      setProjects(projects.filter(project => project.id !== projectId));
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+    }
   };
 
   const handleFormClose = (formData) => {
     setShowProjectForm(false);
     if (formData) {
       console.log('Form submitted with data:', formData);
+      // Refresh projects after form submission
+      fetchProjects((projectsData) => {
+        setProjects(projectsData);
+      });
     }
   };
 
@@ -205,21 +225,100 @@ function DashboardDesign({
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        {projects.map((project) => (
-                          <div key={project.id} className="p-4 bg-gray-700 rounded-lg flex justify-between items-center">
-                            <div>
-                              <h4 className="text-gray-200 font-medium">{project.title}</h4>
-                              <p className="text-sm text-gray-400">SKU: {project.sku}</p>
-                              <p className="text-sm text-gray-400">Client: {project.client}</p>
-                              <p className="text-sm text-gray-400">Status: {project.status}</p>
-                              <p className="text-sm text-gray-400">JobType: {project.jobType}</p>
-                            </div>
-                            <div className="text-gray-400 text-sm">
-                              {project.category?.join(', ')}
-                            </div>
+                      <div className="overflow-x-auto">
+                        <div className="inline-block min-w-full">
+                          <div className="shadow overflow-hidden border-b border-gray-700 rounded-lg">
+                            <table className="min-w-full divide-y divide-gray-700 transform bg-gray-800">
+                              <thead className="bg-gray-700">
+                                <tr>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">SKU</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Title</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Client</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Job Type</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Due Date</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Assigned To</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Complexity</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Hold</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Artist</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Workflow</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Priority</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Categories</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Tags</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">QA Errors</th>
+                                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Self-Serve</th>
+                                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Option ID</th>
+                                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-gray-800 divide-y divide-gray-700">
+                                {projects.map((project) => (
+                                  <tr key={project.id} className="hover:bg-gray-700 transition-colors duration-200">
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{project.sku || 'N/A'}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{project.title || 'N/A'}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{project.client === 'All' ? 'N/A' : project.client}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                                      <span className={`px-2 py-1 rounded-full text-xs ${
+                                        project.status === 'Completed' ? 'bg-green-900 text-green-300' :
+                                        project.status === 'In Progress' ? 'bg-blue-900 text-blue-300' :
+                                        project.status === 'On Hold' ? 'bg-yellow-900 text-yellow-300' :
+                                        'bg-gray-600 text-gray-300'
+                                      }`}>
+                                        {project.status === 'All' ? 'N/A' : project.status}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{project.jobType === 'All' ? 'N/A' : project.jobType}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{project.dueDate || 'N/A'}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{project.assignedUser === 'All' ? 'N/A' : project.assignedUser}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{project.complexity === 'All' ? 'N/A' : project.complexity}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{project.hold === 'All' ? 'N/A' : project.hold}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{project.artistCo === 'All' ? 'N/A' : project.artistCo}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{project.workflowType === 'All' ? 'N/A' : project.workflowType}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                                      <span className={`px-2 py-1 rounded-full text-xs ${
+                                        project.priority === 'High' ? 'bg-red-900 text-red-300' :
+                                        project.priority === 'Medium' ? 'bg-yellow-900 text-yellow-300' :
+                                        project.priority === 'Low' ? 'bg-green-900 text-green-300' :
+                                        'bg-gray-600 text-gray-300'
+                                      }`}>
+                                        {project.priority === 'All' ? 'N/A' : project.priority}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                                      {project.category && project.category.length > 0 
+                                        ? project.category.slice(0, 2).join(', ') + (project.category.length > 2 ? '...' : '') 
+                                        : 'N/A'}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{project.tag === 'All' ? 'N/A' : project.tag}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{project.qaErrors === 'All' ? 'N/A' : project.qaErrors}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-300">
+                                      {project.selfserveJobs 
+                                        ? <span className="bg-blue-900 text-blue-300 px-2 py-1 rounded-full text-xs">Yes</span> 
+                                        : <span className="bg-gray-600 text-gray-300 px-2 py-1 rounded-full text-xs">No</span>}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{project.optionId || 'N/A'}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                                      <div className="flex justify-center space-x-2">
+                                        <button 
+                                          onClick={() => handleEditProject(project)}
+                                          className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition-colors"
+                                        >
+                                          Edit
+                                        </button>
+                                        <button 
+                                          onClick={() => handleDeleteProject(project.id)}
+                                          className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded transition-colors"
+                                        >
+                                          Delete
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
-                        ))}
+                        </div>
                       </div>
                     )}
                   </div>
