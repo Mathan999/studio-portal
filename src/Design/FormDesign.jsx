@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getFormOptions } from '../services/firebaseService';
+import { getFormOptions, deleteFormOption } from '../services/firebaseService';
 
 function FormDesign({
   formData,
@@ -24,6 +24,7 @@ function FormDesign({
     tag: [],
     priority: []
   });
+  const [imagePreview, setImagePreview] = useState(null);
 
   const requiredFields = ['sku', 'title', 'client', 'status'];
 
@@ -43,6 +44,15 @@ function FormDesign({
     
     return () => clearInterval(intervalId);
   }, []);
+
+  // Set image preview when imageUrl changes
+  useEffect(() => {
+    if (formData.imageUrl) {
+      setImagePreview(formData.imageUrl);
+    } else {
+      setImagePreview(null);
+    }
+  }, [formData.imageUrl]);
 
   useEffect(() => {
     if (isSubmitted) {
@@ -77,8 +87,23 @@ function FormDesign({
       newErrors.category = 'Select at least one category';
     }
     
+    // Validate imageUrl format if provided
+    if (formData.imageUrl && !isValidUrl(formData.imageUrl)) {
+      newErrors.imageUrl = 'Please enter a valid URL';
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const isValidUrl = (string) => {
+    try {
+      new URL(string);
+      return true;
+    // eslint-disable-next-line no-unused-vars
+    } catch (_) {
+      return false;
+    }
   };
 
   const handleSubmit = (e) => {
@@ -96,39 +121,100 @@ function FormDesign({
     }
   };
 
+  // Handler to delete an option from a dropdown list
+  const handleDeleteOption = (optionType, optionValue) => {
+    // First update the local state immediately for responsive UI
+    setFormOptions(prevOptions => {
+      // Check if prevOptions[optionType] exists before filtering
+      const optionArray = prevOptions[optionType] || [];
+      
+      const updatedOptions = {
+        ...prevOptions,
+        [optionType]: optionArray.filter(opt => opt !== optionValue)
+      };
+      return updatedOptions;
+    });
+
+    // If selected option is being deleted, reset the form value
+    if (formData[optionType] === optionValue) {
+      handleChange({
+        target: {
+          name: optionType,
+          value: ''
+        }
+      });
+    }
+
+    // Then update in Firebase
+    deleteFormOption(optionType, optionValue);
+  };
+
+  // Handler to delete a category from the category list
+  const handleDeleteCategory = (categoryValue) => {
+    // Update local state
+    setFormOptions(prevOptions => {
+      // Check if prevOptions.category exists before filtering
+      const categoryArray = prevOptions.category || [];
+      
+      const updatedOptions = {
+        ...prevOptions,
+        category: categoryArray.filter(cat => cat !== categoryValue)
+      };
+      return updatedOptions;
+    });
+
+    // If the deleted category is selected, remove it from selection
+    if (formData.category && formData.category.includes(categoryValue)) {
+      const updatedCategories = formData.category.filter(cat => cat !== categoryValue);
+      handleChange({
+        target: {
+          name: 'category',
+          value: updatedCategories
+        }
+      });
+    }
+
+    // Update in Firebase
+    deleteFormOption('category', categoryValue);
+  };
+
   const renderField = (label, name, value, options) => (
     <div className="mb-4">
       <label className={`block text-sm font-medium mb-2 ${requiredFields.includes(name) ? 'text-blue-100 after:content-["*"] after:ml-0.5 after:text-red-400' : 'text-blue-100'}`}>
         {label}:
       </label>
-      <select
-        name={name}
-        value={value || ''}
-        onChange={handleChange}
-        className={`block w-full bg-black bg-opacity-50 border ${errors[name] ? 'border-red-400' : 'border-blue-500'} text-blue-100 py-2 px-3 rounded leading-tight focus:outline-none focus:bg-black focus:border-blue-400`}
-      >
-        <option value="">Select {label}</option>
-        {Array.isArray(options) && options.map((option, index) => (
-          <option key={`${option}-${index}`} value={option}>{option}</option>
-        ))}
-      </select>
+      <div className="relative">
+        <select
+          name={name}
+          value={value || ''}
+          onChange={handleChange}
+          className={`block w-full bg-black bg-opacity-50 border ${errors[name] ? 'border-red-400' : 'border-blue-500'} text-blue-100 py-2 px-3 rounded leading-tight focus:outline-none focus:bg-black focus:border-blue-400 pr-10`}
+        >
+          <option value="">Select {label}</option>
+          {Array.isArray(options) && options.map((option, index) => (
+            <option key={`${option}-${index}`} value={option}>{option}</option>
+          ))}
+        </select>
+        
+        {/* Delete button inside dropdown, matching your image */}
+        <button
+          type="button"
+          className="absolute right-2 top-2 text-blue-300 hover:text-blue-100 focus:outline-none"
+          onClick={() => {
+            if (value) {
+              handleDeleteOption(name, value);
+            }
+          }}
+          disabled={!value}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          </svg>
+        </button>
+      </div>
       {errors[name] && (
         <p className="text-red-400 text-xs mt-1 error-message">{errors[name]}</p>
       )}
-      
-      {/* Display current options below the field
-      {Array.isArray(options) && options.length > 0 && (
-        <div className="mt-2 p-2 bg-gray-700 rounded max-h-24 overflow-y-auto">
-          <p className="text-xs text-gray-400 mb-1">Current options:</p>
-          <div className="flex flex-wrap gap-1">
-            {options.map((item, index) => (
-              <span key={`option-${index}`} className="bg-blue-900 text-blue-200 px-2 py-1 rounded text-xs">
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-      )} */}
     </div>
   );
 
@@ -147,6 +233,58 @@ function FormDesign({
       />
       {errors[name] && (
         <p className="text-red-400 text-xs mt-1 error-message">{errors[name]}</p>
+      )}
+    </div>
+  );
+
+  // New function to render image URL input with preview
+  const renderImageUrlInput = () => (
+    <div className="mb-4">
+      <label className="block text-sm font-medium mb-2 text-blue-100">
+        Image URL (Cloudinary):
+      </label>
+      <div className="flex flex-col space-y-2">
+        <input
+          type="text"
+          name="imageUrl"
+          value={formData.imageUrl || ''}
+          onChange={handleChange}
+          className={`block w-full bg-black bg-opacity-50 border ${errors.imageUrl ? 'border-red-400' : 'border-blue-500'} text-blue-100 py-2 px-3 rounded leading-tight focus:outline-none focus:bg-black focus:border-blue-400`}
+          placeholder="Enter Cloudinary Image URL"
+        />
+        
+        {formData.imageUrl && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => handleChange({ target: { name: 'imageUrl', value: '' } })}
+              className="absolute right-2 top-2 text-blue-300 hover:text-blue-100 focus:outline-none bg-black bg-opacity-50 rounded-full p-1"
+              aria-label="Clear image URL"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <div className="mt-2 border border-blue-900 rounded-md overflow-hidden">
+              {imagePreview && (
+                <img
+                  src={imagePreview}
+                  alt="Project thumbnail"
+                  className="w-full h-32 object-cover"
+                  onError={() => setImagePreview(null)}
+                />
+              )}
+              {!imagePreview && formData.imageUrl && (
+                <div className="w-full h-32 bg-gray-900 flex items-center justify-center text-blue-300 text-sm">
+                  Unable to load image preview
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+      {errors.imageUrl && (
+        <p className="text-red-400 text-xs mt-1 error-message">{errors.imageUrl}</p>
       )}
     </div>
   );
@@ -215,17 +353,29 @@ function FormDesign({
                   <label className="block text-blue-100 text-sm font-medium mb-2">Category:</label>
                   <div className={`bg-black bg-opacity-50 border ${errors.category ? 'border-red-400' : 'border-blue-500'} rounded p-2 max-h-32 overflow-y-auto`}>
                     {Array.isArray(formOptions.category) && formOptions.category.map((category, index) => (
-                      <div key={`cat-${index}`} className="flex items-center mb-1">
-                        <input
-                          type="checkbox"
-                          id={`category-${category}`}
-                          checked={formData.category?.includes(category) || false}
-                          onChange={() => handleCategoryChange(category)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-blue-500 rounded"
-                        />
-                        <label htmlFor={`category-${category}`} className="ml-2 text-sm text-blue-100">
-                          {category}
-                        </label>
+                      <div key={`cat-${index}`} className="flex items-center mb-1 justify-between">
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id={`category-${category}`}
+                            checked={formData.category?.includes(category) || false}
+                            onChange={() => handleCategoryChange(category)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-blue-500 rounded"
+                          />
+                          <label htmlFor={`category-${category}`} className="ml-2 text-sm text-blue-100">
+                            {category}
+                          </label>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCategory(category)}
+                          className="text-blue-300 hover:text-blue-100"
+                          aria-label={`Delete ${category} category`}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -238,19 +388,36 @@ function FormDesign({
 
                 <div className="mb-4">
                   <label className="block text-blue-100 text-sm font-medium mb-2">Due Date:</label>
-                  <input
-                    type="date"
-                    name="dueDate"
-                    value={formData.dueDate || ''}
-                    onChange={handleChange}
-                    className={`block w-full bg-black bg-opacity-50 border ${errors.dueDate ? 'border-red-400' : 'border-blue-500'} text-blue-100 py-2 px-3 rounded leading-tight focus:outline-none focus:bg-black focus:border-blue-400`}
-                  />
+                  <div className="relative">
+                    <input
+                      type="date"
+                      name="dueDate"
+                      value={formData.dueDate || ''}
+                      onChange={handleChange}
+                      className={`block w-full bg-black bg-opacity-50 border ${errors.dueDate ? 'border-red-400' : 'border-blue-500'} text-blue-100 py-2 px-3 rounded leading-tight focus:outline-none focus:bg-black focus:border-blue-400 pr-10`}
+                    />
+                    {formData.dueDate && (
+                      <button
+                        type="button"
+                        onClick={() => handleChange({ target: { name: 'dueDate', value: '' } })}
+                        className="absolute right-2 top-2 text-blue-300 hover:text-blue-100 focus:outline-none"
+                        aria-label="Clear due date"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                   {errors.dueDate && (
                     <p className="text-red-400 text-xs mt-1 error-message">{errors.dueDate}</p>
                   )}
                 </div>
 
                 {renderField('Priority', 'priority', formData.priority, formOptions.priority)}
+                
+                {/* Add the new image URL input field */}
+                {renderImageUrlInput()}
               </div>
             </div>
             

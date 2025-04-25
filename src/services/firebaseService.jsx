@@ -1,4 +1,3 @@
-// firebaseService.jsx
 import { initializeApp } from 'firebase/app';
 import { 
   getDatabase, 
@@ -6,7 +5,8 @@ import {
   push, 
   onValue, 
   set,
-  remove} from 'firebase/database';
+  remove,
+  get } from 'firebase/database';
 
 // Your Firebase configuration object
 const firebaseConfig = {
@@ -90,17 +90,23 @@ export const deleteProject = async (projectId) => {
   }
 };
 
-// Function to fetch all projects
-export const fetchProjects = (callback) => {
-  const projectsRef = ref(database, 'projects');
-  onValue(projectsRef, (snapshot) => {
-    const data = snapshot.val();
-    const projectsArray = data
-      ? Object.keys(data).map((key) => ({ id: key, ...data[key] }))
-      : [];
-    callback(projectsArray);
-  }, (error) => {
-    console.error('Error fetching projects:', error);
+// Updated function to fetch all projects - now returns a Promise
+export const fetchProjects = () => {
+  return new Promise((resolve, reject) => {
+    const projectsRef = ref(database, 'projects');
+    
+    get(projectsRef)
+      .then((snapshot) => {
+        const data = snapshot.val();
+        const projectsArray = data
+          ? Object.keys(data).map((key) => ({ id: key, ...data[key] }))
+          : [];
+        resolve(projectsArray);
+      })
+      .catch((error) => {
+        console.error('Error fetching projects:', error);
+        reject(error);
+      });
   });
 };
 
@@ -161,6 +167,40 @@ export const addFormOption = async (category, value) => {
     });
   } catch (error) {
     console.error(`Error adding ${value} to ${category}:`, error);
+    throw error;
+  }
+};
+
+// Function to delete an option from a specific category
+export const deleteFormOption = async (category, value) => {
+  try {
+    if (!category || !value) {
+      throw new Error('Category and value are required');
+    }
+
+    const optionsRef = ref(database, `formOptions/${category}`);
+    
+    // Get current values
+    return new Promise((resolve, reject) => {
+      onValue(optionsRef, async (snapshot) => {
+        try {
+          const currentValues = snapshot.val() || [];
+          
+          // Filter out the value to be deleted
+          const updatedValues = currentValues.filter(item => item !== value);
+          
+          // Update in Firebase
+          await set(optionsRef, updatedValues);
+          console.log(`Successfully deleted ${value} from ${category}`);
+          resolve();
+        } catch (error) {
+          console.error(`Error processing ${category} delete:`, error);
+          reject(error);
+        }
+      }, { onlyOnce: true });
+    });
+  } catch (error) {
+    console.error(`Error deleting ${value} from ${category}:`, error);
     throw error;
   }
 };

@@ -4,6 +4,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import InstallPWA from './components/InstallPWA';
+import './assets/Loader.css'; // Import the CSS for the loader
 
 function App() {
   // Authentication state
@@ -18,7 +19,7 @@ function App() {
       try {
         const tokenParts = storedToken.split('.');
         if (tokenParts.length !== 3) throw new Error('Invalid token format');
-
+        
         const payload = JSON.parse(atob(tokenParts[1]));
         if (payload.exp * 1000 > Date.now()) {
           setIsAuthenticated(true);
@@ -58,7 +59,18 @@ function App() {
   };
 
   if (isLoading) {
-    return <div className="loading">Loading...</div>;
+    return (
+      <div className="loading-container">
+        <div className="loader">
+          <div className="loader__bar"></div>
+          <div className="loader__bar"></div>
+          <div className="loader__bar"></div>
+          <div className="loader__bar"></div>
+          <div className="loader__bar"></div>
+          <div className="loader__ball"></div>
+        </div>
+      </div>
+    );
   }
 
   return (

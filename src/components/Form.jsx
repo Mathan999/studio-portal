@@ -1,63 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import FormDesign from '../Design/FormDesign';
-import { saveProject } from '../services/firebaseService'; // Import Firebase service
+import { saveProject, updateProject } from '../services/firebaseService';
 
 function Form({ onClose, projectData }) {
   const [formData, setFormData] = useState({
     sku: '',
-    jobType: 'All',
-    assignedUser: 'All',
-    status: 'All',
-    complexity: 'All',
-    hold: 'All',
+    jobType: '',
+    assignedUser: '',
+    status: '',
+    complexity: '',
+    hold: '',
     title: '',
-    client: 'All',
-    artistCo: 'All',
-    workflowType: 'All',
+    client: '',
+    artistCo: '',
+    workflowType: '',
     selfserveJobs: false,
-    qaErrors: 'All',
+    qaErrors: '',
     optionId: '',
     category: [],
-    priority: 'All',
-    tag: 'All',
-    dueDate: ''
+    priority: '',
+    tag: '',
+    dueDate: '',
+    imageUrl: ''
   });
-
-  const [categories] = useState([
-    'Gaming Chairs',
-    'Gaming Beds',
-    'Futons & Sleepers',
-    'Furniture Sets',
-    'Furniture',
-    'Fragrance Oils',
-    'Fragrance',
-    'Food Prep & Processors',
-    'Food',
-    'Flush Mount Lighting',
-    'Flowers'
-  ]);
 
   useEffect(() => {
     if (projectData) {
+      // Use spread operator to include all possible fields from projectData
       setFormData(prevData => ({
         ...prevData,
+        ...projectData,
+        // Ensure these specific fields have fallback values
         sku: projectData.sku || '',
         title: projectData.title || '',
-        client: projectData.client || 'All',
-        status: projectData.status || 'All',
+        client: projectData.client || '',
+        status: projectData.status || '',
         category: projectData.category || [],
         dueDate: projectData.dueDate || '',
-        jobType: projectData.jobType || 'All',
-        assignedUser: projectData.assignedUser || 'All',
-        complexity: projectData.complexity || 'All',
-        hold: projectData.hold || 'All',
-        artistCo: projectData.artistCo || 'All',
-        workflowType: projectData.workflowType || 'All',
+        jobType: projectData.jobType || '',
+        assignedUser: projectData.assignedUser || '',
+        complexity: projectData.complexity || '',
+        hold: projectData.hold || '',
+        artistCo: projectData.artistCo || '',
+        workflowType: projectData.workflowType || '',
         selfserveJobs: projectData.selfserveJobs || false,
-        qaErrors: projectData.qaErrors || 'All',
+        qaErrors: projectData.qaErrors || '',
         optionId: projectData.optionId || '',
-        priority: projectData.priority || 'All',
-        tag: projectData.tag || 'All'
+        priority: projectData.priority || '',
+        tag: projectData.tag || '',
+        imageUrl: projectData.imageUrl || ''
       }));
     }
   }, [projectData]);
@@ -72,7 +63,7 @@ function Form({ onClose, projectData }) {
 
   const handleCategoryChange = (category) => {
     setFormData(prevData => {
-      const updatedCategories = [...prevData.category];
+      const updatedCategories = prevData.category ? [...prevData.category] : [];
       if (updatedCategories.includes(category)) {
         return {
           ...prevData,
@@ -87,42 +78,20 @@ function Form({ onClose, projectData }) {
     });
   };
 
-  const handleImageUpload = (e) => {
-    console.log("Image uploaded:", e.target.files[0]);
-  };
-
-  const resetFilters = () => {
-    setFormData({
-      sku: '',
-      jobType: 'All',
-      assignedUser: 'All',
-      status: 'All',
-      complexity: 'All',
-      hold: 'All',
-      title: '',
-      client: 'All',
-      artistCo: 'All',
-      workflowType: 'All',
-      selfserveJobs: false,
-      qaErrors: 'All',
-      optionId: '',
-      category: [],
-      priority: 'All',
-      tag: 'All',
-      dueDate: ''
-    });
-  };
-
-  const exportCsv = () => {
-    console.log("Exporting CSV...");
-  };
-
-  const handleSave = async (data) => {
+  const handleFormSubmit = async (validatedFormData) => {
     try {
-      await saveProject(data);
-      onClose(data); // Pass data back to DashboardDesign
+      if (projectData && projectData.id) {
+        // Update existing project - include all fields
+        await updateProject(projectData.id, validatedFormData);
+      } else {
+        // Create new project - include all fields for new entry
+        await saveProject(validatedFormData);
+      }
+      // Close the form and pass the data back to parent
+      onClose(validatedFormData);
     } catch (error) {
-      console.error('Failed to save project:', error);
+      console.error('Error saving project:', error);
+      alert('Failed to save project. Please try again.');
     }
   };
 
@@ -152,11 +121,7 @@ function Form({ onClose, projectData }) {
             formData={formData}
             handleChange={handleChange}
             handleCategoryChange={handleCategoryChange}
-            handleImageUpload={handleImageUpload}
-            categories={categories}
-            resetFilters={resetFilters}
-            exportCsv={exportCsv}
-            onSave={handleSave}
+            onSave={handleFormSubmit}
             onCancel={handleCancel}
           />
         </div>
