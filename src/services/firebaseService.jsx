@@ -24,6 +24,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
+// Export the initialized app and database
+export { app, database };
+
 // Create default form options if they don't exist
 const initializeDefaultOptions = async () => {
   const defaultOptions = {
@@ -66,7 +69,20 @@ export const saveProject = async (projectData) => {
   }
 };
 
-// Function to update project data
+// Function to save image with client - updated to use v9 syntax
+export const saveImageWithClient = async (imageData) => {
+  try {
+    const imageDbRef = ref(database, 'EditImageCorrection');
+    const newImageRef = push(imageDbRef);
+    await set(newImageRef, imageData);
+    return newImageRef.key;
+  } catch (error) {
+    console.error('Error saving image with client:', error);
+    throw error;
+  }
+};
+
+// Rest of your original code...
 export const updateProject = async (projectId, projectData) => {
   try {
     const projectRef = ref(database, `projects/${projectId}`);
@@ -78,7 +94,6 @@ export const updateProject = async (projectId, projectData) => {
   }
 };
 
-// Function to delete project
 export const deleteProject = async (projectId) => {
   try {
     const projectRef = ref(database, `projects/${projectId}`);
@@ -90,7 +105,6 @@ export const deleteProject = async (projectId) => {
   }
 };
 
-// Updated function to fetch all projects - now returns a Promise
 export const fetchProjects = () => {
   return new Promise((resolve, reject) => {
     const projectsRef = ref(database, 'projects');
@@ -110,7 +124,6 @@ export const fetchProjects = () => {
   });
 };
 
-// Function to get form options
 export const getFormOptions = (callback) => {
   const optionsRef = ref(database, 'formOptions');
   onValue(optionsRef, (snapshot) => {
@@ -135,7 +148,6 @@ export const getFormOptions = (callback) => {
   });
 };
 
-// Function to add option to a specific category
 export const addFormOption = async (category, value) => {
   try {
     if (!category || !value || value.trim() === '') {
@@ -171,7 +183,6 @@ export const addFormOption = async (category, value) => {
   }
 };
 
-// Function to delete an option from a specific category
 export const deleteFormOption = async (category, value) => {
   try {
     if (!category || !value) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import FormDesign from '../Design/FormDesign';
-import { saveProject, updateProject } from '../services/firebaseService';
+import { saveProject, updateProject, saveImageWithClient } from '../services/firebaseService';
 
 function Form({ onClose, projectData }) {
   const [formData, setFormData] = useState({
@@ -80,6 +80,7 @@ function Form({ onClose, projectData }) {
 
   const handleFormSubmit = async (validatedFormData) => {
     try {
+      // First save/update the project as normal
       if (projectData && projectData.id) {
         // Update existing project - include all fields
         await updateProject(projectData.id, validatedFormData);
@@ -87,6 +88,20 @@ function Form({ onClose, projectData }) {
         // Create new project - include all fields for new entry
         await saveProject(validatedFormData);
       }
+      
+      // If both imageUrl and client are provided, save to EditImageCorrection database
+      if (validatedFormData.imageUrl && validatedFormData.client) {
+        const timestamp = new Date().toISOString();
+        await saveImageWithClient({
+          imageUrl: validatedFormData.imageUrl,
+          client: validatedFormData.client,
+          title: validatedFormData.title || '',
+          sku: validatedFormData.sku || '',
+          createdAt: timestamp,
+          updatedAt: timestamp
+        });
+      }
+      
       // Close the form and pass the data back to parent
       onClose(validatedFormData);
     } catch (error) {

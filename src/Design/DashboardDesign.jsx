@@ -4,6 +4,7 @@ import { fetchProjects } from '../services/firebaseService'; // Import Firebase 
 import Admin from '../components/Admin'; // Import Admin component
 import StatsSection from '../Design/StatsSection'; // Import our new StatsSection component
 import DashForm from '../components/DashForm'; // Import FormDash component
+import ImageCorr from '../components/ImageCorr'; // Import Correction component - uncommented this line
 
 function DashboardDesign({
   projectStats,
@@ -137,12 +138,14 @@ function DashboardDesign({
                 </button>
               </div>
               
-              <div className="relative hover:bg-gray-700">
+              <div className={`relative ${activeTab === 'correction' ? 'bg-gray-700' : 'hover:bg-gray-700'}`}>
                 <div className="absolute top-0 left-0 h-full w-1 border-l-4 border-transparent"></div>
+                {activeTab === 'correction' && <div className="absolute top-0 left-0 h-full w-1 border-l-4 border-blue-400"></div>}
                 <button 
                   className="w-full text-left px-6 py-3 font-medium text-gray-300 hover:text-gray-100"
+                  onClick={() => setActiveTab('correction')}
                 >
-                  Reports
+                Correction
                 </button>
               </div>
               
@@ -205,7 +208,8 @@ function DashboardDesign({
                 {activeTab === 'overview' ? 'Dashboard' : 
                  activeTab === 'projects' ? 'Projects' : 
                  activeTab === 'clients' ? 'Client Dashboard' : 
-                 activeTab === 'settings' ? 'Admin Panel' : 'Dashboard'}
+                 activeTab === 'settings' ? 'Admin Panel' : 
+                 activeTab === 'correction' ? 'Proofing' : 'Dashboard'}
               </h2>
               
               <div className="lg:hidden">
@@ -304,6 +308,11 @@ function DashboardDesign({
             {activeTab === 'settings' && (
               // Render Admin component instead of settings content
               <Admin onLogout={handleAdminLogout} token={adminToken} />
+            )}
+            
+            {activeTab === 'correction' && (
+              // Render ImageCorr component
+              <ImageCorr />
             )}
             
             <div className="pb-16"></div>
